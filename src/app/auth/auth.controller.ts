@@ -1,73 +1,74 @@
 import { Request, Response } from 'express'
 import { PrismaClient } from '@prisma/client'
-import bcrypt from 'bcrypt'
+import bcrypt, { compare } from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import { searchRoleId } from '../../lib/search-roleid'
+
 
 const prisma = new PrismaClient()
 
 class AuthC {
 
-    async Register(req: Request, res: Response){
-        const { name, password, email, number, age } = req.body
+  async Register(req: Request, res: Response) {
+    const { userName, fullName, password, email, numberPhone, age } = req.body
 
-        const searchRoleId = async (role) => {
-            const roleId = await prisma.role.findFirst({
-                where: {
-                    name: role
-                }
-            })
 
-            return roleId.id
-        }
-        
-        const register = await prisma.user.create({
-            data: {
-                fullName: name,
-                email: email,
-                numberPhone: number,
-                password: await bcrypt.hash(password, 5) ,
-                age: age,
-                roleId: await searchRoleId('user')
-            }
+
+    const register = await prisma.user.create({
+      data: {
+        userName,
+        fullName,
+        email,
+        numberPhone,
+        password: await bcrypt.hash(password, 5),
+        age: parseInt(age),
+        roleId: await searchRoleId('client')
+      }
+    })
+
+    res.send({
+      msg: 'done request',
+      data: register
+    })
+  }
+
+  async Login(req: Request, res: Response) {
+    const { email, password } = req.body
+
+    await prisma.user.findUnique({
+      where: {
+        email
+      }
+    })
+      .then((vals) => {
+        const verifyPass = compare(password, vals.password)
+        if (!verifyPass) res.status(404).json({ msg: 'password is incorrect' })
+
+        const token = jwt.sign({ user: vals.userName, role: vals.roleId }, 'supersecreto', { expiresIn: '1h' })
+
+        res.setHeader('authorization', `Bearer ${token}`)
+
+        res.status(200).json({
+          msg: 'user has been logged in'
         })
+      })
+      .catch((reason) => {
+        res.status(404).json({ reason: reason })
+      })
 
-        res.send({
-            msg: 'done request',
-            data: register
-        })
-    }
+  }
 
-    async Login(req: Request, res: Response){
-        const { email, password } = req.body
+  LogOut(req: Request, res: Response) {
+    res.send('logOut endpoint')
+  }
 
-        const user =  await prisma.user.findUnique({
-            where: {
-                email
-            }
-        })
+  ForgotPwd(req: Request, res: Response) {
+    res.send('forgot endpoint')
+  }
 
-        if(!user) res.status(400).json({message: 'user is not in the database'})
-
-        const validPwd = await bcrypt.compare(password, user.password)
-
-        if(!validPwd) res.status(400).json({message: 'password is incorrect'})
-
-        const token = jwt.sign({userId: user.id}, 'supersecreto', {expiresIn: '1h'})
-
-        res.json({ user, token })
-    }
-
-    LogOut(req: Request, res: Response){
-        res.send('logOut endpoint')
-    }
-    
-    ForgotPwd(req: Request, res: Response){
-        res.send('forgot endpoint')
-    }
-
-    ResetPwd(req: Request, res: Response) {
-        res.send('reset endpoint')
-    }
+  ResetPwd(req: Request, res: Response) {
+    res.send('reset endpoint')
+  }
 
 }
 

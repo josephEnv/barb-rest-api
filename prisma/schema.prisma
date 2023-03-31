@@ -11,20 +11,27 @@ datasource db {
 }
 
 model User {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  fullName String
-  email String @unique
-  numberPhone String
-  age Int
-  password String
-  roleId String @db.ObjectId
-  role Role @relation(fields: [roleId], references: [id]) 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId()
+  fullName    String
+  userName    String   @unique
+  email       String   @unique
+  password    String
+  numberPhone String   @unique
+  age         Int
+  role        Role     @relation(fields: [roleId], references: [id])
+  roleId      String   @db.ObjectId
+  Device      Device[]
 }
 
 model Role {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
-  name String
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String @unique
   user User[]
+}
+
+model Device {
+  id       String @id @default(auto()) @map("_id") @db.ObjectId
+  deviceId String
+  user     User   @relation(fields: [userId], references: [id])
+  userId   String @db.ObjectId
 }

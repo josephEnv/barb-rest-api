@@ -12,7 +12,7 @@ class AuthC {
   async Register(req: Request, res: Response) {
     const { userName, fullName, password, email, numberPhone, age } = req.body
 
-
+    const AgeInt = parseInt(age, 10)
 
     const register = await prisma.user.create({
       data: {
@@ -21,7 +21,7 @@ class AuthC {
         email,
         numberPhone,
         password: await bcrypt.hash(password, 5),
-        age: parseInt(age),
+        age: AgeInt,
         roleId: await searchRoleId('client')
       }
     })
